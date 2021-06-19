@@ -8,6 +8,7 @@
 #include "common/time.h"
 #include "common/profiler.h"
 #include "common/console.h"
+#include "common/fuzzy.h"
 #include <string.h>
 #include <stdlib.h>
 
@@ -37,6 +38,7 @@ static cmdstat_t cmd_execfile_fn(i32 argc, const char** argv);
 static cmdstat_t cmd_wait_fn(i32 argc, const char** argv);
 static cmdstat_t cmd_cmds_fn(i32 argc, const char** argv);
 static cmdstat_t cmd_echo_fn(i32 argc, const char** argv);
+static cmdstat_t cmd_apropos(i32 argc, const char** argv);
 
 static StrDict ms_cmds;
 static StrDict ms_aliases;
@@ -56,6 +58,7 @@ void cmd_sys_init(void)
     cmd_reg("wait", "[<ms>]", "wait the given number of milliseconds (1 by default) before executing the next command.", cmd_wait_fn);
     cmd_reg("cmds", "", "list all registered commands.", cmd_cmds_fn);
     cmd_reg("echo", "<text>", "prints the specified text to the console.", cmd_echo_fn);
+    cmd_reg("apropos", "<name>", "Find a command whose name is close to the given name", cmd_apropos);
 }
 
 void cmd_sys_update(void)
@@ -570,6 +573,32 @@ static cmdstat_t cmd_echo_fn(i32 argc, const char** argv)
     }
 
     Con_Logf(LogSev_Info, "cmd", text);
+
+    return cmdstat_ok;
+}
+
+static cmdstat_t cmd_apropos(i32 argc, const char** argv)
+{
+    if (argc != 2)
+    {
+        Con_Logf(LogSev_Error, "cmd", "apropos <name> : find a command that is similar to the given name.");
+        return cmdstat_err;
+    }
+
+    i32 len = StrLen(argv[1]);
+
+    i32 fuzz;
+    StrList list = StrDict_FindFuzzy(&ms_cmds, argv[1], (i32)(1.5 * len), &fuzz);
+    if (list.count <= 0)
+    {
+        Con_Logf(LogSev_Error, "cmd", "no matching commands.");
+        return cmdstat_err;
+    }
+
+    for (i32 i = 0; i < list.count; i++)
+    {
+        Con_Logf(LogSev_Info, "cmd", "did you mean '%s'?", list.ptr[i]);
+    }
 
     return cmdstat_ok;
 }
