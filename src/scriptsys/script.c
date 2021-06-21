@@ -4,16 +4,72 @@
 #include "lua/lua.h"
 #include "common/console.h"
 #include "common/stringutil.h"
+#include "common/sort.h"
 #include "scr_log.h"
 #include "scr_time.h"
 #include "scr_cmd.h"
 #include "scr_cvar.h"
 #include "scr_game.h"
 #include "common/profiler.h"
+#include "common/time.h"
+#include "ui/cimgui_ext.h"
+#include "io/fnd.h"
+#include "containers/sdict.h"
 #include "allocator/allocator.h"
+
+typedef struct Script_LoadData_s {
+	bool running;
+	u64 started;
+} Script_LoadData;
 
 static lua_State* L;
 
+static StrDict sm_scripts;
+
+static void scr_update_scripts_recursive(char* dir, i32 len)
+{
+	Finder fnd = { -1 };
+	FinderData fndData;
+	while (Finder_Iterate(&fnd, &fndData, dir))
+	{
+		if (fndData.attrib & FAF_SubDir && StrCmp(ARGS(fndData.name), "..") && StrCmp(ARGS(fndData.name), "."))
+		{
+			i32 subLen = len - 1; // remove star
+			subLen += SPrintf(&dir[subLen], PIM_PATH - subLen, "%s/*", fndData.name);
+			StrPath(dir, PIM_PATH);
+
+			scr_update_scripts_recursive(dir, subLen);
+		}
+		else if (fndData.attrib & ~(FAF_System | FAF_Hidden) && IEndsWith(ARGS(fndData.name), ".lua"))
+		{
+			char filePath[PIM_PATH];
+			StrCpy(ARGS(filePath), dir);
+			i32 iCat = len - 1; // remove star
+			SPrintf(&filePath[iCat], PIM_PATH - iCat, fndData.name);
+
+			Script_LoadData data = { 0 };
+			StrDict_Add(&sm_scripts, filePath, &data);
+		}
+	}
+}
+
+static void scr_update_scripts()
+{
+	for (u32 i = 0; i < sm_scripts.width; i++)
+	{
+		Script_LoadData* vals = sm_scripts.values;
+		if (&vals[i])
+		{
+			Mem_Free(&vals[i]);
+		}
+	}
+
+	char path[PIM_PATH];
+	i32 len = SPrintf(ARGS(path), "%s*", SCRIPT_DIR);
+	StrPath(ARGS(path));
+	scr_update_scripts_recursive(path, len);
+
+}
 
 static void* scr_lua_alloc(void* ud, void* ptr, size_t osize, size_t nsize)
 {
@@ -31,9 +87,12 @@ static void* scr_lua_alloc(void* ud, void* ptr, size_t osize, size_t nsize)
 
 void ScriptSys_Init(void)
 {
+	StrDict_New(&sm_scripts, sizeof(Script_LoadData), EAlloc_Perm);
+
+	scr_update_scripts();
+
 	L = lua_newstate(scr_lua_alloc, NULL);
 	ASSERT(L);
-
 	luaL_openlibs(L);
 
 	scr_cmd_init(L);
@@ -78,6 +137,71 @@ void ScriptSys_Update(void)
 	ProfileEnd(pm_game_update);
 
 	ProfileEnd(pm_update);
+}
+
+void ScriptSys_Gui(bool* pEnabled)
+{
+	igSetNextWindowSize((ImVec2) { 500, 440 }, ImGuiCond_FirstUseEver);
+	if (igBegin("ScriptSystem", pEnabled, 0x0))
+	{
+		// left
+		Script_LoadData selected = { 0 };
+		const char* selectedName = "";
+		static i32 iSelected = 0;
+		{
+			igBeginChildStr("left pane", (ImVec2) { 150, 0 }, true, 0);
+			i32* indices = StrDict_Sort(&sm_scripts, SDictStrCmp, NULL);
+			Script_LoadData* datas = sm_scripts.values;
+			for (u32 i = 0; i < sm_scripts.count; i++)
+			{
+				i32 index = indices[i];
+
+				const char* fullPath = sm_scripts.keys[index];
+				const char* pathWithoutScriptsDir = &fullPath[sizeof(SCRIPT_DIR) - 1];
+
+				if (iSelected == i)
+				{
+					selected = datas[index];
+					selectedName = fullPath;
+				}
+
+				if (igSelectableBool(pathWithoutScriptsDir, iSelected == i, ImGuiSelectableFlags_SelectOnClick, (ImVec2) { 0 }))
+				{
+					iSelected = i;
+				}
+			}
+			Mem_Free(indices);
+			igEndChild();
+
+			igSameLine(0, 0);
+		}
+
+		// right
+		{
+			igBeginGroup();
+
+			igBeginChildStr("item view", (ImVec2) { 0, 0 }, false, 0);
+			igText(selectedName);
+			
+			if (igBeginTable("table props", 1, 0, (ImVec2) { 0 }, 0))
+			{
+				igTableNextColumn();
+				bool cached = selected.running;
+				igCheckbox("Running", &selected.running);
+				selected.running = cached;
+
+				igTableNextColumn();
+				igLabelText("Runtime", selected.running ? "%f" : "n/a", Time_Sec(Time_Now() - selected.started));
+
+				igEndTable();
+			}
+
+			igEndChild();
+
+			igEndGroup();
+		}
+	}
+	igEnd();
 }
 
 void Script_RegisterLib(lua_State* L, const char* name, ScrLib_Reg regType)

@@ -27,6 +27,7 @@ typedef enum {
 void ScriptSys_Init(void);
 void ScriptSys_Shutdown(void);
 void ScriptSys_Update(void);
+void ScriptSys_Gui(bool* pEnabled);
 
 void Script_RegisterLib(lua_State* L, const char* name, ScrLib_Reg regType);
 

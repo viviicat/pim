@@ -9,6 +9,7 @@
 #include "assets/asset_system.h"
 #include "audio/audio_system.h"
 #include "ui/cimgui_ext.h"
+#include "scriptsys/script.h"
 
 // ----------------------------------------------------------------------------
 
@@ -29,6 +30,7 @@ static edwin_t ms_windows[] =
     { "Profiler", ProfileSys_Gui },
     { "Renderer", RenderSys_Gui },
     { "Textures", TextureSys_Gui },
+    { "Scripts", ScriptSys_Gui }
 };
 
 // ----------------------------------------------------------------------------
