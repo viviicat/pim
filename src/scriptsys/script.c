@@ -138,7 +138,8 @@ void ScriptSys_Gui(bool* pEnabled)
 	{
 		// left
 		Script_RunData selected = { 0 };
-		const char* selectedName = "";
+		const char* selectedDisplayName = "";
+		const char* selectedFullName = "";
 		static i32 iSelected = 0;
 		{
 
@@ -187,19 +188,21 @@ void ScriptSys_Gui(bool* pEnabled)
 			{
 				i32 index = indices[i];
 
-				const char* fullPath = running_scripts.keys[index];
-				if (IStartsWith(fullPath, PIM_PATH, "@script\\"))
+				const char* fullName = running_scripts.keys[index];
+				const char* displayName = fullName;
+				if (IStartsWith(fullName, PIM_PATH, "@script\\"))
 				{
-					fullPath += NELEM("@script\\") - 1;
+					displayName += NELEM("@script\\") - 1;
 				}
 
 				if (iSelected == i)
 				{
 					selected = datas[index];
-					selectedName = fullPath;
+					selectedFullName = fullName;
+					selectedDisplayName = displayName;
 				}
 
-				if (igSelectableBool(fullPath, iSelected == i, ImGuiSelectableFlags_SelectOnClick, (ImVec2) { 0 }))
+				if (igSelectableBool(displayName, iSelected == i, ImGuiSelectableFlags_SelectOnClick, (ImVec2) { 0 }))
 				{
 					iSelected = i;
 				}
@@ -220,13 +223,13 @@ void ScriptSys_Gui(bool* pEnabled)
 			{
 				if (igExButton("Stop"))
 				{
-					scr_remove_update_handler(L, selectedName, &selected);
+					scr_remove_update_handler(L, selectedFullName, &selected);
 				}
 
 				igExSameLine();
 			}
 
-			igText(iSelected >= 0 ? selectedName : "<none>");
+			igText(iSelected >= 0 ? selectedDisplayName : "<none>");
 
 			if (iSelected >= 0)
 			{
