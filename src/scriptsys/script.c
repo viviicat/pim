@@ -14,20 +14,16 @@
 #include "common/time.h"
 #include "ui/cimgui_ext.h"
 #include "io/fnd.h"
-#include "containers/sdict.h"
 #include "allocator/allocator.h"
 #include "common/profiler.h"
-
-typedef struct Script_LoadData_s {
-	bool running;
-	u64 started;
-} Script_LoadData;
+#include "containers/strlist.h"
+#include "containers/sdict.h"
 
 static lua_State* L;
 
-static StrDict sm_scripts;
+static StrList sm_script_paths;
 
-static void scr_update_scripts_recursive(char* dir, i32 len)
+static void scr_locate_scripts_recursive(char* dir, i32 len)
 {
 	Finder fnd = { -1 };
 	FinderData fndData;
@@ -39,37 +35,29 @@ static void scr_update_scripts_recursive(char* dir, i32 len)
 			subLen += SPrintf(&dir[subLen], PIM_PATH - subLen, "%s/*", fndData.name);
 			StrPath(dir, PIM_PATH);
 
-			scr_update_scripts_recursive(dir, subLen);
+			scr_locate_scripts_recursive(dir, subLen);
 		}
 		else if (fndData.attrib & ~(FAF_System | FAF_Hidden) && IEndsWith(ARGS(fndData.name), ".lua"))
 		{
 			char filePath[PIM_PATH];
 			StrCpy(ARGS(filePath), dir);
 			i32 iCat = len - 1; // remove star
-			SPrintf(&filePath[iCat], PIM_PATH - iCat, fndData.name);
+			i32 l = SPrintf(&filePath[iCat], PIM_PATH - iCat, fndData.name);
+			NullTerminate(filePath, PIM_PATH, iCat + l - 4);
 
-			Script_LoadData data = { 0 };
-			StrDict_Add(&sm_scripts, filePath, &data);
+			StrList_Add(&sm_script_paths, &filePath[NELEM(SCRIPT_DIR) - 1]);
 		}
 	}
 }
 
-static void scr_update_scripts()
+static void scr_locate_scripts()
 {
-	for (u32 i = 0; i < sm_scripts.width; i++)
-	{
-		Script_LoadData* vals = sm_scripts.values;
-		if (&vals[i])
-		{
-			Mem_Free(&vals[i]);
-		}
-	}
+	StrList_Clear(&sm_script_paths);
 
 	char path[PIM_PATH];
 	i32 len = SPrintf(ARGS(path), "%s*", SCRIPT_DIR);
 	StrPath(ARGS(path));
-	scr_update_scripts_recursive(path, len);
-
+	scr_locate_scripts_recursive(path, len);
 }
 
 static void* scr_lua_alloc(void* ud, void* ptr, size_t osize, size_t nsize)
@@ -88,9 +76,9 @@ static void* scr_lua_alloc(void* ud, void* ptr, size_t osize, size_t nsize)
 
 void ScriptSys_Init(void)
 {
-	StrDict_New(&sm_scripts, sizeof(Script_LoadData), EAlloc_Perm);
+	StrList_New(&sm_script_paths, EAlloc_Perm);
 
-	scr_update_scripts();
+	scr_locate_scripts();
 
 	L = lua_newstate(scr_lua_alloc, NULL);
 	ASSERT(L);
@@ -122,7 +110,7 @@ ProfileMark(pm_time_update, scrUpdate_Time)
 ProfileMark(pm_game_update, scrUpdate_Game)
 void ScriptSys_Update(void)
 {
-	if (scr_game_num_scripts() <= 0)
+	if (scr_game_get_running().count <= 0)
 	{
 		return;
 	}
@@ -140,25 +128,70 @@ void ScriptSys_Update(void)
 	ProfileEnd(pm_update);
 }
 
+ProfileMark(pm_gui_update, ScriptSys_Gui)
 void ScriptSys_Gui(bool* pEnabled)
 {
+	ProfileBegin(pm_gui_update);
+
 	igSetNextWindowSize((ImVec2) { 500, 440 }, ImGuiCond_FirstUseEver);
 	if (igBegin("ScriptSystem", pEnabled, 0x0))
 	{
 		// left
-		Script_LoadData selected = { 0 };
+		Script_RunData selected = { 0 };
 		const char* selectedName = "";
 		static i32 iSelected = 0;
 		{
-			igBeginChildStr("left pane", (ImVec2) { 150, 0 }, true, 0);
-			i32* indices = StrDict_Sort(&sm_scripts, SDictStrCmp, NULL);
-			Script_LoadData* datas = sm_scripts.values;
-			for (u32 i = 0; i < sm_scripts.count; i++)
+
+			igBeginChildStr("left toolbar", (ImVec2) { 150, 20 }, false, 0);
+			if (igExButton("Run..."))
+			{
+				igOpenPopup("scr_run_popup", ImGuiPopupFlags_None);
+			}
+
+			if (igBeginPopup("scr_run_popup", ImGuiWindowFlags_None))
+			{
+				for (i32 i = 0; i < sm_script_paths.count; i++)
+				{
+					const char* path = sm_script_paths.ptr[i];
+					if (igSelectableBool(path, false, ImGuiSelectableFlags_None, (ImVec2) { 0 }))
+					{
+						ScriptSys_Exec(path);
+					}
+				}
+
+				igEndPopup();
+			}
+
+			igEndChild();
+
+			igBeginChildStr("left pane", (ImVec2) { 150, -igGetFrameHeightWithSpacing() }, true, 0); // room for top toolbar
+
+			StrDict running_scripts = scr_game_get_running();
+			i32* indices = StrDict_Sort(&running_scripts, SDictStrCmp, NULL);
+			Script_RunData* datas = running_scripts.values;
+
+			if (running_scripts.count <= 0)
+			{
+				iSelected = -1;
+			}
+			else if (iSelected < 0)
+			{
+				iSelected = 0;
+			}
+			else if (iSelected >= (i32)running_scripts.count)
+			{
+				iSelected = running_scripts.count - 1;
+			}
+
+			for (u32 i = 0; i < running_scripts.count; i++)
 			{
 				i32 index = indices[i];
 
-				const char* fullPath = sm_scripts.keys[index];
-				const char* pathWithoutScriptsDir = &fullPath[sizeof(SCRIPT_DIR) - 1];
+				const char* fullPath = running_scripts.keys[index];
+				if (IStartsWith(fullPath, PIM_PATH, "@script\\"))
+				{
+					fullPath += NELEM("@script\\") - 1;
+				}
 
 				if (iSelected == i)
 				{
@@ -166,7 +199,7 @@ void ScriptSys_Gui(bool* pEnabled)
 					selectedName = fullPath;
 				}
 
-				if (igSelectableBool(pathWithoutScriptsDir, iSelected == i, ImGuiSelectableFlags_SelectOnClick, (ImVec2) { 0 }))
+				if (igSelectableBool(fullPath, iSelected == i, ImGuiSelectableFlags_SelectOnClick, (ImVec2) { 0 }))
 				{
 					iSelected = i;
 				}
@@ -174,7 +207,7 @@ void ScriptSys_Gui(bool* pEnabled)
 			Mem_Free(indices);
 			igEndChild();
 
-			igSameLine(0, 0);
+			igExSameLine();
 		}
 
 		// right
@@ -182,19 +215,32 @@ void ScriptSys_Gui(bool* pEnabled)
 			igBeginGroup();
 
 			igBeginChildStr("item view", (ImVec2) { 0, 0 }, false, 0);
-			igText(selectedName);
-			
-			if (igBeginTable("table props", 1, 0, (ImVec2) { 0 }, 0))
+
+			if (iSelected >= 0)
 			{
-				igTableNextColumn();
-				bool cached = selected.running;
-				igCheckbox("Running", &selected.running);
-				selected.running = cached;
+				if (igExButton("Stop"))
+				{
+					scr_remove_update_handler(L, selectedName, &selected);
+				}
 
-				igTableNextColumn();
-				igLabelText("Runtime", selected.running ? "%f" : "n/a", Time_Sec(Time_Now() - selected.started));
+				igExSameLine();
+			}
 
-				igEndTable();
+			igText(iSelected >= 0 ? selectedName : "<none>");
+
+			if (iSelected >= 0)
+			{
+				if (igBeginTable("table props", 1, 0, (ImVec2) { 0 }, 0))
+				{
+					igTableNextColumn();
+					igLabelText("Runtime", "%f", Time_Sec(Time_Now() - selected.started));
+
+					igEndTable();
+				}
+
+				igPlotHistogramFloatPtr("Execution",
+					selected.profile_durations, NUM_PROFILE_SAMPLES,
+					selected.profile_offset, NULL, 0, selected.profile_max, (ImVec2) { 0, 80 }, sizeof(float));
 			}
 
 			igEndChild();
@@ -203,6 +249,8 @@ void ScriptSys_Gui(bool* pEnabled)
 		}
 	}
 	igEnd();
+
+	ProfileEnd(pm_gui_update);
 }
 
 void Script_RegisterLib(lua_State* L, const char* name, ScrLib_Reg regType)
@@ -230,11 +278,7 @@ bool ScriptSys_Exec(const char* filename)
 		len = StrCat(ARGS(path), ".lua");
 	}
 
-	if (len > PIM_PATH)
-	{
-		Con_Logf(LogSev_Error, "script", "path is too long (> %i)", PIM_PATH);
-		return false;
-	}
+	StrPath(ARGS(path));
 
 	Con_Logf(LogSev_Verbose, "script", "executing script from %s", path);
 
