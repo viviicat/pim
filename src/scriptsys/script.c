@@ -16,6 +16,7 @@
 #include "io/fnd.h"
 #include "containers/sdict.h"
 #include "allocator/allocator.h"
+#include "common/profiler.h"
 
 typedef struct Script_LoadData_s {
 	bool running;
