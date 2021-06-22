@@ -82,7 +82,8 @@ void scr_remove_update_handler(lua_State* L, const char* name, Script_RunData* d
 	}
 	lua_pop(L, 1); // table
 
-	ASSERT(StrDict_Rm(&sm_update_handlers, name, NULL));
+	bool removed = StrDict_Rm(&sm_update_handlers, name, NULL);
+	ASSERT(removed);
 	luaL_unref(L, LUA_REGISTRYINDEX, data->ref_id);
 }
 
