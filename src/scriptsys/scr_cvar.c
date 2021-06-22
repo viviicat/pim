@@ -164,25 +164,21 @@ static lua_Number scr_checknumberfield(lua_State* L, i32 pos, const char* field)
 
 static float4 scr_check_vec(lua_State* L, i32 pos)
 {
-	float4 val = { 0 };
-
 	// Can either be separated args, or a table with the fields
-	if (lua_istable(L, pos))
+	float4* test;
+	if ((test = luaL_testudata(L, pos, SCR_FLOAT4_MT)))
 	{
-		val.x = (float)scr_checknumberfield(L, pos, "x");
-		val.y = (float)scr_checknumberfield(L, pos, "y");
-		val.z = (float)scr_checknumberfield(L, pos, "z");
-		val.w = (float)scr_checknumberfield(L, pos, "w");
+		return *test;
 	}
 	else
 	{
+		float4 val;
 		val.x = (float)luaL_checknumber(L, pos);
 		val.y = (float)luaL_checknumber(L, pos + 1);
 		val.z = (float)luaL_checknumber(L, pos + 2);
 		val.w = (float)luaL_checknumber(L, pos + 3);
+		return val;
 	}
-
-	return val;
 }
 
 static i32 scr_func_get(lua_State* L)
