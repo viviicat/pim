@@ -139,9 +139,13 @@ void scr_game_update(lua_State* L)
 			continue;
 		}
 
-		u64 start = Time_Now();
-
 		Script_RunData* data = &datas[i];
+		if (data->paused)
+		{
+			continue;
+		}
+
+		u64 start = Time_Now();
 
 		lua_rawgeti(L, LUA_REGISTRYINDEX, data->ref_id);
 		lua_getfield(L, 1, "update");

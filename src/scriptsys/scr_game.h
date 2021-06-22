@@ -14,6 +14,7 @@ typedef struct Script_RunData {
 	float profile_durations[NUM_PROFILE_SAMPLES];
 	i32 profile_offset;
 	float profile_max;
+	float paused;
 } Script_RunData;
 
 void scr_game_init(lua_State* L);

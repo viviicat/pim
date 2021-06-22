@@ -133,39 +133,35 @@ void ScriptSys_Gui(bool* pEnabled)
 {
 	ProfileBegin(pm_gui_update);
 
-	igSetNextWindowSize((ImVec2) { 500, 440 }, ImGuiCond_FirstUseEver);
-	if (igBegin("ScriptSystem", pEnabled, 0x0))
+	igSetNextWindowSize((ImVec2) { 250, 440 }, ImGuiCond_FirstUseEver);
+	if (igBegin("ScriptSystem", pEnabled, ImGuiWindowFlags_MenuBar))
 	{
-		// left
-		Script_RunData selected = { 0 };
-		const char* selectedDisplayName = "";
-		const char* selectedFullName = "";
 		static i32 iSelected = 0;
+		if (igBeginMenuBar())
 		{
-
-			igBeginChildStr("left toolbar", (ImVec2) { 150, 20 }, false, 0);
-			if (igExButton("Run..."))
-			{
-				igOpenPopup("scr_run_popup", ImGuiPopupFlags_None);
-			}
-
-			if (igBeginPopup("scr_run_popup", ImGuiWindowFlags_None))
+			if (igBeginMenu("Run...", true))
 			{
 				for (i32 i = 0; i < sm_script_paths.count; i++)
 				{
 					const char* path = sm_script_paths.ptr[i];
-					if (igSelectableBool(path, false, ImGuiSelectableFlags_None, (ImVec2) { 0 }))
+					if (igMenuItemBool(path, NULL, false, true))
 					{
 						ScriptSys_Exec(path);
+						iSelected = INT_MAX; // trigger selecting last item
 					}
 				}
 
-				igEndPopup();
+				igEndMenu();
 			}
 
-			igEndChild();
+			igEndMenuBar();
+		}
 
-			igBeginChildStr("left pane", (ImVec2) { 150, -igGetFrameHeightWithSpacing() }, true, 0); // room for top toolbar
+		Script_RunData* selected = NULL;
+		const char* selectedDisplayName = "";
+		const char* selectedFullName = "";
+		{
+			igBeginChildStr("top pane", (ImVec2) { 0, igGetFrameHeightWithSpacing() - 175 }, true, 0);
 
 			StrDict running_scripts = scr_game_get_running();
 			i32* indices = StrDict_Sort(&running_scripts, SDictStrCmp, NULL);
@@ -197,7 +193,7 @@ void ScriptSys_Gui(bool* pEnabled)
 
 				if (iSelected == i)
 				{
-					selected = datas[index];
+					selected = &datas[index];
 					selectedFullName = fullName;
 					selectedDisplayName = displayName;
 				}
@@ -209,41 +205,45 @@ void ScriptSys_Gui(bool* pEnabled)
 			}
 			Mem_Free(indices);
 			igEndChild();
-
-			igExSameLine();
 		}
 
-		// right
 		{
 			igBeginGroup();
 
 			igBeginChildStr("item view", (ImVec2) { 0, 0 }, false, 0);
 
-			if (iSelected >= 0)
+			if (selected)
 			{
 				if (igExButton("Stop"))
 				{
-					scr_remove_update_handler(L, selectedFullName, &selected);
+					scr_remove_update_handler(L, selectedFullName, selected);
+				}
+
+				igExSameLine();
+
+				if (igExButton(selected->paused ? "Play" : "Pause"))
+				{
+					selected->paused = !selected->paused;
 				}
 
 				igExSameLine();
 			}
 
-			igText(iSelected >= 0 ? selectedDisplayName : "<none>");
+			igText(iSelected >= 0 ? selectedDisplayName : "No active scripts");
 
-			if (iSelected >= 0)
+			if (selected)
 			{
 				if (igBeginTable("table props", 1, 0, (ImVec2) { 0 }, 0))
 				{
 					igTableNextColumn();
-					igLabelText("Runtime", "%f", Time_Sec(Time_Now() - selected.started));
+					igLabelText("Run secs", "%f", Time_Sec(Time_Now() - selected->started));
 
 					igEndTable();
 				}
 
-				igPlotHistogramFloatPtr("Execution",
-					selected.profile_durations, NUM_PROFILE_SAMPLES,
-					selected.profile_offset, NULL, 0, selected.profile_max, (ImVec2) { 0, 80 }, sizeof(float));
+				igPlotHistogramFloatPtr("Profiling",
+					selected->profile_durations, NUM_PROFILE_SAMPLES,
+					selected->profile_offset, NULL, 0, selected->profile_max, (ImVec2) { 0, 80 }, sizeof(float));
 			}
 
 			igEndChild();
