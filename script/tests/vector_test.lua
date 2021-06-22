@@ -7,9 +7,9 @@ function vector_test:update()
 
   for i=1, 10000 do
     local sun_vector = Cvar.get("r_sun_col")
-    total = total + sun_vector:x()
-    total = total + sun_vector:y()
-    total = total + sun_vector:z()
+    total = total + sun_vector.x
+    total = total + sun_vector.y
+    total = total + sun_vector.z
   end
   
 end

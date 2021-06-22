@@ -50,16 +50,29 @@ static i32 scr_f4_tostring(lua_State* L)
 	return 1;
 }
 
-static const luaL_Reg sm_f4_meth[] = {
-	{ "x", scr_f4_x },
-	{ "y", scr_f4_y },
-	{ "z", scr_f4_z },
-	{ "w", scr_f4_w },
-	{ 0 }
-};
+static i32 scr_f4_getters(lua_State* L)
+{
+	float4 vec = scr_tof4(L);
+	const char* getter = luaL_checkstring(L, 2);
+	if (!getter || getter[1]) // if 0 or longer than 1
+	{
+		return 0;
+	}
+
+	switch (getter[0])
+	{
+	case 'x': lua_pushnumber(L, vec.x); break;
+	case 'y': lua_pushnumber(L, vec.y); break;
+	case 'z': lua_pushnumber(L, vec.z); break;
+	case 'w': lua_pushnumber(L, vec.w); break;
+	default: return 0;
+	}
+
+	return 1;
+}
 
 static const luaL_Reg sm_f4_metameth[] = {
-	{ "__index", NULL }, // placeholder
+	{ "__index", scr_f4_getters }, // placeholder
 	{ "__tostring", scr_f4_tostring },
 	{ 0 }
 };
@@ -69,8 +82,6 @@ static void scr_f4_createmeta(lua_State* L)
 {
 	luaL_newmetatable(L, SCR_FLOAT4_MT);
 	luaL_setfuncs(L, sm_f4_metameth, 0);
-	luaL_newlib(L, sm_f4_meth);
-	lua_setfield(L, -2, "__index");
 	lua_pop(L, 1);
 }
 
