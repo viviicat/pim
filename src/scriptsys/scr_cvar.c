@@ -2,22 +2,83 @@
 #include "lua/lualib.h"
 #include "lua/lauxlib.h"
 #include "math/types.h"
+#include "math/float4_funcs.h"
 #include "common/console.h"
 #include "common/cvar.h"
 #include "scr_cmd.h"
 #include "script.h"
 
+#define SCR_FLOAT4_MT "scr_float4"
+
+pim_inline static float4 VEC_CALL scr_tof4(lua_State* L)
+{
+	return *(float4*)luaL_checkudata(L, 1, SCR_FLOAT4_MT);
+}
+
+static i32 scr_f4_x(lua_State* L)
+{
+	float4 vec = scr_tof4(L);
+	lua_pushnumber(L, vec.x);
+	return 1;
+}
+
+static i32 scr_f4_y(lua_State* L)
+{
+	float4 vec = scr_tof4(L);
+	lua_pushnumber(L, vec.y);
+	return 1;
+}
+
+static i32 scr_f4_z(lua_State* L)
+{
+	float4 vec = scr_tof4(L);
+	lua_pushnumber(L, vec.z);
+	return 1;
+}
+
+static i32 scr_f4_w(lua_State* L)
+{
+	float4 vec = scr_tof4(L);
+	lua_pushnumber(L, vec.w);
+	return 1;
+}
+
+static i32 scr_f4_tostring(lua_State* L)
+{
+	float4 vec = scr_tof4(L);
+	lua_pushfstring(L, "<%f, %f, %f, %f>", vec.x, vec.y, vec.z, vec.w);
+	return 1;
+}
+
+static const luaL_Reg sm_f4_meth[] = {
+	{ "x", scr_f4_x },
+	{ "y", scr_f4_y },
+	{ "z", scr_f4_z },
+	{ "w", scr_f4_w },
+	{ 0 }
+};
+
+static const luaL_Reg sm_f4_metameth[] = {
+	{ "__index", NULL }, // placeholder
+	{ "__tostring", scr_f4_tostring },
+	{ 0 }
+};
+
+/// Create a metatable for the vec4 operations.
+static void scr_f4_createmeta(lua_State* L)
+{
+	luaL_newmetatable(L, SCR_FLOAT4_MT);
+	luaL_setfuncs(L, sm_f4_metameth, 0);
+	luaL_newlib(L, sm_f4_meth);
+	lua_setfield(L, -2, "__index");
+	lua_pop(L, 1);
+}
+
 static void VEC_CALL scr_push_vec(lua_State* L, float4 vec)
 {
-	lua_createtable(L, 4, 0);
-	lua_pushnumber(L, vec.x);
-	lua_setfield(L, -2, "x");
-	lua_pushnumber(L, vec.y);
-	lua_setfield(L, -2, "y");
-	lua_pushnumber(L, vec.z);
-	lua_setfield(L, -2, "z");
-	lua_pushnumber(L, vec.w);
-	lua_setfield(L, -2, "w");
+	float4* udata_vec = lua_newuserdata(L, sizeof(float4));
+	*udata_vec = vec;
+	luaL_setmetatable(L, SCR_FLOAT4_MT);
 }
 
 static lua_Number scr_checknumberfield(lua_State* L, i32 pos, const char* field)
@@ -92,7 +153,7 @@ static i32 scr_func_get(lua_State* L)
 	}
 	default:
 		ASSERT(false);
-		break;
+		return 0;
 	}
 
 	return 1;
@@ -158,6 +219,8 @@ void scr_cvar_init(lua_State* L)
 		LUA_FN(set));
 
 	Script_RegisterLib(L, "cvar", ScrLib_Import);
+
+	scr_f4_createmeta(L);
 }
 
 void scr_cvar_shutdown(lua_State* L)
