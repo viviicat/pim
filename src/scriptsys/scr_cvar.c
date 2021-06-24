@@ -5,7 +5,7 @@
 #include "common/cvar.h"
 #include "scr_cmd.h"
 #include "script.h"
-#include "scr_vec.h"
+#include "scr_f4.h"
 
 static i32 scr_func_get(lua_State* L)
 {
@@ -37,7 +37,7 @@ static i32 scr_func_get(lua_State* L)
 	case cvart_point:
 	{
 		float4 vec = ConVar_GetVec(var);
-		scr_push_vec(L, vec);
+		scr_push_f4(L, vec);
 		break;
 	}
 	default:
@@ -89,7 +89,7 @@ static i32 scr_func_set(lua_State* L)
 	case cvart_vector:
 	case cvart_point:
 	{
-		float4 val = scr_check_vec_or_args(L, 2);
+		float4 val = scr_check_f4_or_args(L, 2);
 		ConVar_SetVec(var, val);
 
 		break;

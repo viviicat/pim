@@ -1,10 +1,11 @@
 local Cvar = require("cvar")
-local Vec = require("vec")
+local F4 = require("f4")
 
 local vector_test = {}
 
 function vector_test:start()
     self.sun_vector = Cvar.get("r_sun_col")
+    self.another_vector = F4.new(50, 42, 53)
     Cvar.set("r_sun_col", self.sun_vector)
 end
 
@@ -17,11 +18,10 @@ function vector_test:update()
     total = total + self.sun_vector.y
     total = total + self.sun_vector.z
 
-    totalLen = totalLen + Vec.length3(self.sun_vector)
+    totalLen = totalLen + F4.lengthsq3(self.sun_vector)
   end
   
-  Log.info(total, " ", totalLen)
-  Log.info(Vec.vec(54, 56, 56))
+  Log.info(total, " ", totalLen, " ", self.sun_vector)
 end
 
 Game.start_update(vector_test);
