@@ -1,4 +1,5 @@
 local Cvar = require("cvar")
+local Vec = require("vec")
 
 local vector_test = {}
 
@@ -15,11 +16,12 @@ function vector_test:update()
     total = total + self.sun_vector.x
     total = total + self.sun_vector.y
     total = total + self.sun_vector.z
-    
-    totalLen = totalLen + self.sun_vector.lengthsq3
+
+    totalLen = totalLen + Vec.lengthsq3(self.sun_vector)
   end
   
   Log.info(total, " ", totalLen)
+  Log.info(Vec.vec(54, 56, 56, 9))
 end
 
 Game.start_update(vector_test);

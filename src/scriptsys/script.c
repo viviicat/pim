@@ -10,6 +10,7 @@
 #include "scr_cmd.h"
 #include "scr_cvar.h"
 #include "scr_game.h"
+#include "scr_vec.h"
 #include "common/profiler.h"
 #include "common/time.h"
 #include "ui/cimgui_ext.h"
@@ -84,9 +85,10 @@ void ScriptSys_Init(void)
 	ASSERT(L);
 	luaL_openlibs(L);
 
-	scr_cmd_init(L);
-	scr_log_init(L);
+	scr_vec_init(L);
 	scr_time_init(L);
+	scr_log_init(L);
+	scr_cmd_init(L);
 	scr_cvar_init(L);
 	scr_game_init(L);
 
@@ -97,9 +99,10 @@ void ScriptSys_Shutdown(void)
 {
 	scr_game_shutdown(L);
 	scr_cmd_shutdown(L);
+	scr_cvar_shutdown(L);
 	scr_log_shutdown(L);
 	scr_time_shutdown(L);
-	scr_cvar_shutdown(L);
+	scr_vec_shutdown(L);
 
 	lua_close(L);
 	L = NULL;
