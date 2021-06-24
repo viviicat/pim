@@ -15,49 +15,49 @@ pim_inline static float4 VEC_CALL scr_check_vec(lua_State* L)
 
 pim_inline static i32 scr_func_tostring(lua_State* L)
 {
-	float4 vec = scr_check_vec(L);
+	float4 vec = scr_check_vec_or_args(L, 1);
 	lua_pushfstring(L, "<%f, %f, %f, %f>", vec.x, vec.y, vec.z, vec.w);
 	return 1;
 }
 
 pim_inline static i32 scr_func_sum(lua_State* L)
 {
-	float4 vec = scr_check_vec(L);
+	float4 vec = scr_check_vec_or_args(L, 1);
 	lua_pushnumber(L, f4_sum(vec));
 	return 1;
 }
 
 pim_inline static i32 scr_func_sum3(lua_State* L)
 {
-	float4 vec = scr_check_vec(L);
+	float4 vec = scr_check_vec_or_args(L, 1);
 	lua_pushnumber(L, f4_sum3(vec));
 	return 1;
 }
 
 pim_inline static i32 scr_func_length4(lua_State* L)
 {
-	float4 vec = scr_check_vec(L);
+	float4 vec = scr_check_vec_or_args(L, 1);
 	lua_pushnumber(L, f4_length4(vec));
 	return 1;
 }
 
 pim_inline static i32 scr_func_length3(lua_State* L)
 {
-	float4 vec = scr_check_vec(L);
+	float4 vec = scr_check_vec_or_args(L, 1);
 	lua_pushnumber(L, f4_length3(vec));
 	return 1;
 }
 
 pim_inline static i32 scr_func_lengthsq4(lua_State* L)
 {
-	float4 vec = scr_check_vec(L);
+	float4 vec = scr_check_vec_or_args(L, 1);
 	lua_pushnumber(L, f4_lengthsq4(vec));
 	return 1;
 }
 
 pim_inline static i32 scr_func_lengthsq3(lua_State* L)
 {
-	float4 vec = scr_check_vec(L);
+	float4 vec = scr_check_vec_or_args(L, 1);
 	lua_pushnumber(L, f4_lengthsq3(vec));
 	return 1;
 }

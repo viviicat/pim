@@ -12,16 +12,16 @@ function vector_test:update()
   local total = 0
   local totalLen = 0
 
-  for i=1, 10000 do
+  for i=1, 100000 do
     total = total + self.sun_vector.x
     total = total + self.sun_vector.y
     total = total + self.sun_vector.z
 
-    totalLen = totalLen + Vec.lengthsq3(self.sun_vector)
+    totalLen = totalLen + Vec.length3(self.sun_vector)
   end
   
   Log.info(total, " ", totalLen)
-  Log.info(Vec.vec(54, 56, 56, 9))
+  Log.info(Vec.vec(54, 56, 56))
 end
 
 Game.start_update(vector_test);
