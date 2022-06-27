@@ -36,7 +36,7 @@ jobs:
       if: steps.cache-apt.outputs.cache-hit != 'true'
       run: |
         mkdir -p ~/apt-cache
-        cp -r /var/cache/apt/archives ~/apt-cache
+        sudo cp -r /var/cache/apt/archives ~/apt-cache
 
     - name: Cache OIDN
       id: cache-oidn
