@@ -226,8 +226,11 @@ else()
     find_library(OIDN_LIB OpenImageDenoise)
     find_library(TBB_LIB tbb)
 
+    set(THREADS_PREFER_PTHREAD_FLAG ON)
+    find_package(Threads REQUIRED)
+
     target_link_libraries(pim ${GLFW_LIBRARIES} ${ALSA_LIBRARIES}
-        Vulkan::Vulkan ${CMAKE_DL_LIBS})
+        Vulkan::Vulkan ${CMAKE_DL_LIBS} Threads::Threads)
 endif()
 
 target_link_libraries(pim)
