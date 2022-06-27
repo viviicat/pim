@@ -213,9 +213,6 @@ else()
     target_sources(pim PRIVATE ${PIM_UNIX_FILES})
     find_package(ALSA REQUIRED FATAL_ERROR)
     find_package(Vulkan REQUIRED FATAL_ERROR)
-    find_package(OpenGL REQUIRED COMPONENTS OpenGL)
-
-    add_dependencies(pim OpenGL::OpenGL)
 
     target_compile_definitions(pim PRIVATE ${PIM_UNIX_COMPILE_DEFINITIONS})
     target_compile_definitions(pim PRIVATE "$<$<CONFIG:DEBUG>:${PIM_UNIX_COMPILE_DEFINITIONS_DEBUG}>")
@@ -233,7 +230,7 @@ else()
     find_package(Threads REQUIRED)
 
     target_link_libraries(pim ${GLFW_LIBRARIES} ${ALSA_LIBRARIES}
-        Vulkan::Vulkan ${CMAKE_DL_LIBS} Threads::Threads OpenGL::OpenGL)
+        Vulkan::Vulkan ${CMAKE_DL_LIBS} Threads::Threads)
 endif()
 
 target_link_libraries(pim)
