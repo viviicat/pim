@@ -27,8 +27,8 @@ jobs:
       uses: actions/cache@v3
       with:
         path: |
-          ~/usr/include/OpenImageDenoise
-          ~/usr/lib64/libOpenImageDenoise.so*
+          /usr/include/OpenImageDenoise
+          /usr/lib64/libOpenImageDenoise.so*
         key: ${{ runner.os }}-oidn-${{env.OIDN_VERSION}}
     
     - name: Install OIDN
