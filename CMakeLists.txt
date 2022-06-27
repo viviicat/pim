@@ -211,7 +211,8 @@ else()
     endif()
 
     target_sources(pim PRIVATE ${PIM_UNIX_FILES})
-    find_package(ALSA REQUIRED)
+    find_package(ALSA REQUIRED FATAL_ERROR)
+    find_package(Vulkan REQUIRED FATAL_ERROR)
 
     target_compile_definitions(pim PRIVATE ${PIM_UNIX_COMPILE_DEFINITIONS})
     target_compile_definitions(pim PRIVATE "$<$<CONFIG:DEBUG>:${PIM_UNIX_COMPILE_DEFINITIONS_DEBUG}>")
@@ -225,7 +226,7 @@ else()
     find_library(OIDN_LIB OpenImageDenoise)
     find_library(TBB_LIB tbb)
 
-    target_link_libraries(pim ${GLFW_LIBRARIES} ${ALSA_LIBRARIES})
+    target_link_libraries(pim ${GLFW_LIBRARIES} ${ALSA_LIBRARIES} Vulkan::Vulkan)
 endif()
 
 target_link_libraries(pim)
