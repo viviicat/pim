@@ -20,7 +20,7 @@ jobs:
       uses: awalsh128/cache-apt-pkgs-action@v1
       with:
         version: 1.0.2
-        packages: libasound2-dev xorg-dev libembree-dev cmake-curses-gui libtbb-dev shaderc
+        packages: libasound2-dev xorg-dev libembree-dev cmake-curses-gui libtbb-dev
         
     - name: Cache OIDN
       id: cache-oidn
