@@ -20,7 +20,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: awalshi128/cache-apt-pkgs-action@v1
+    - uses: awalsh128/cache-apt-pkgs-action@v1
       with:
         version: 1.0.2
         packages: clang libasound2-dev xorg-dev libembree-dev cmake-curses-gui libtbb-dev
