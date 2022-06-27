@@ -34,7 +34,7 @@ void Intrin_Yield(void) { SwitchToThread(); }
 
 #include <sched.h>
 
-#ifndef __rdtsc
+#if !__has_builtin(__rdtsc)
 pim_inline u64 __rdtsc(void)
 {
     u32 hi, lo;
