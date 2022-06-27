@@ -7,16 +7,12 @@ on:
     branches: [ "master" ]
 
 env:
-  # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
   BUILD_TYPE: Release
   OIDN_VERSION: "1.4.0"
   VULKAN_VERSION: "1.3.216.0"
 
 jobs:
   build:
-    # The CMake configure and build commands are platform agnostic and should work equally well on Windows or Mac.
-    # You can convert this to a matrix build if you need cross-platform coverage.
-    # See: https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
     runs-on: ubuntu-latest
 
     steps:
@@ -34,13 +30,6 @@ jobs:
           ~/usr/lib64/libOpenImageDenoise.so*
         key: ${{ runner.os }}-oidn-${{env.OIDN_VERSION}}
     
-    - name: Cache Vulkan SDK
-      id: cache-vulkan
-      uses: actions/cache@v3
-      with:
-        path: vulkan
-        key: ${{ runner.os }}-vulkan-${{env.VULKAN_VERSION}}
-        
     #- if: ${{ steps.cache-oidn.outputs.cache-hit == 'false' }}
     - name: Install OIDN
       run: |
@@ -52,16 +41,13 @@ jobs:
         sudo cp -R ./lib/* /usr/lib64/
         rm ./oidn-${{env.OIDN_VERSION}}.x86_64.linux.tar.gz
         popd
-      
-    #- if: ${{ steps.cache-vulkan.outputs.cache-hit == 'false' }}
-    - name: Install Vulkan
-      run: |
-        mkdir -p ~/vulkan
-        pushd ~/vulkan
-        wget https://sdk.lunarg.com/sdk/download/1.3.216.0/linux/vulkansdk-linux-x86_64-${{env.VULKAN_VERSION}}.tar.gz
-        tar -xv --strip-components=1 -f vulkansdk-linux-x86_64-${{env.VULKAN_VERSION}}.tar.gz
-        rm ./vulkansdk-linux-x86_64-${{env.VULKAN_VERSION}}.tar.gz
-        popd
+
+    - name: Prepare Vulkan SDK
+      uses: humbletim/setup-vulkan-sdk@v1.2.0
+      with:
+        vulkan-query-version: $VULKAN_VERSION
+        vulkan-components: Vulkan-Headers, Vulkan-Loader
+        vulkan-use-cache: true
     
     - uses: actions/checkout@v3
       with:
