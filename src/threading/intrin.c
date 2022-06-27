@@ -34,6 +34,7 @@ void Intrin_Yield(void) { SwitchToThread(); }
 
 #include <sched.h>
 
+#if !__has_builtin(__rdtsc)
 pim_inline u64 __rdtsc(void)
 {
     u32 hi, lo;
@@ -43,6 +44,7 @@ pim_inline u64 __rdtsc(void)
     value |= lo;
     return value;
 }
+#endif
 
 void Intrin_Yield(void) { sched_yield(); }
 #endif // PLAT_X

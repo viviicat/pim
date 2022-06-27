@@ -1,0 +1,76 @@
+name: CMake
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+env:
+  BUILD_TYPE: Release
+  OIDN_VERSION: "1.4.0"
+  VULKAN_VERSION: "1.3.216.0"
+  APT_PACKAGES: libasound2-dev xorg-dev libembree-dev cmake-curses-gui libtbb-dev
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Cache apt
+      uses: actions/cache@v3
+      id: cache-apt
+      with:
+        path: ~/apt-cache
+        key: ${{runner.os}}-${{env.APT_PACKAGES}}
+
+    - name: Copy apt cache
+      if: steps.cache-apt.outputs.cache-hit == 'true'
+      run: sudo cp -r ~/apt-cache /var/cache/apt/archives
+
+    - name: Install dependencies
+      run: sudo apt install ${{env.APT_PACKAGES}}
+
+    # because no sudo caching supported
+    - name: Backup apt cache
+      if: steps.cache-apt.outputs.cache-hit != 'true'
+      run: |
+        mkdir -p ~/apt-cache
+        sudo cp -r /var/cache/apt/archives ~/apt-cache
+        sudo chown -R `whoami` ~/apt-cache
+
+    - name: Cache OIDN
+      id: cache-oidn
+      uses: actions/cache@v3
+      with:
+        path: |
+          /usr/include/OpenImageDenoise
+          /usr/lib64/libOpenImageDenoise.so*
+        key: ${{ runner.os }}-oidn-${{env.OIDN_VERSION}}
+    
+    - name: Install OIDN
+      if: steps.cache-oidn.outputs.cache-hit != 'true'
+      run: |
+        mkdir -p ~/oidn
+        pushd ~/oidn
+        wget https://github.com/OpenImageDenoise/oidn/releases/download/v${{env.OIDN_VERSION}}/oidn-${{env.OIDN_VERSION}}.x86_64.linux.tar.gz
+        tar -xv --strip-components=1 -f oidn-${{env.OIDN_VERSION}}.x86_64.linux.tar.gz
+        sudo cp -R ./include /usr
+        sudo cp -R ./lib/* /usr/lib64/
+        rm ./oidn-${{env.OIDN_VERSION}}.x86_64.linux.tar.gz
+        popd
+
+    - uses: actions/checkout@v3
+      with:
+        submodules: recursive
+
+    - name: Install Vulkan SDK
+      uses: humbletim/install-vulkan-sdk@v1.1.1
+      with:
+        version: $VULKAN_VERSION
+        cache: true
+    
+    - name: Configure + Build
+      run: |
+        chmod u+x build.sh
+        ./build.sh

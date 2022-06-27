@@ -168,7 +168,6 @@ set(PIM_UNIX_COMPILE_OPTIONS
     "-pthread"
     "-Wno-unused-function"
     "-Wno-unused-variable"
-    "-Wno-unused-but-set-variable" # currently stb has a warning for this.
     "-Wno-incompatible-pointer-types-discards-qualifiers")
 
 set(PIM_UNIX_COMPILE_OPTIONS_RELEASE
@@ -205,11 +204,15 @@ if (MSVC)
     target_link_options(pim PRIVATE "$<$<CONFIG:RELEASE>:${PIM_MSVC_LINK_OPTIONS_RELEASE}>")
     target_link_options(pim PRIVATE "$<$<CONFIG:DEBUG>:${PIM_MSVC_LINK_OPTIONS_DEBUG}>")
 else()
-    set(CMAKE_C_COMPILER clang)
-    set(CMAKE_CXX_COMPILER clang++)
+    if (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 13)
+        list(APPEND PIM_UNIX_COMPILE_OPTIONS
+            "-Wno-unused-but-set-variable" # currently stb has a warning for this.
+        )
+    endif()
 
     target_sources(pim PRIVATE ${PIM_UNIX_FILES})
-    find_package(ALSA REQUIRED)
+    find_package(ALSA REQUIRED FATAL_ERROR)
+    find_package(Vulkan REQUIRED FATAL_ERROR)
 
     target_compile_definitions(pim PRIVATE ${PIM_UNIX_COMPILE_DEFINITIONS})
     target_compile_definitions(pim PRIVATE "$<$<CONFIG:DEBUG>:${PIM_UNIX_COMPILE_DEFINITIONS_DEBUG}>")
@@ -223,7 +226,11 @@ else()
     find_library(OIDN_LIB OpenImageDenoise)
     find_library(TBB_LIB tbb)
 
-    target_link_libraries(pim ${GLFW_LIBRARIES} ${ALSA_LIBRARIES})
+    set(THREADS_PREFER_PTHREAD_FLAG ON)
+    find_package(Threads REQUIRED)
+
+    target_link_libraries(pim ${GLFW_LIBRARIES} ${ALSA_LIBRARIES}
+        Vulkan::Vulkan ${CMAKE_DL_LIBS} Threads::Threads)
 endif()
 
 target_link_libraries(pim)
