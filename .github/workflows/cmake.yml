@@ -67,10 +67,8 @@ jobs:
       with:
         submodules: recursive
     
-    - name: Install Vulkan SDK
-      run: source ~/vulkan/setup-env.sh
-
     - name: Configure + Build
       run: |
+        source ~/vulkan/setup-env.sh
         chmod u+x build.sh
         ./build.sh
