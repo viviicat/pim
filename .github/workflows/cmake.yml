@@ -64,6 +64,8 @@ jobs:
         popd
     
     - uses: actions/checkout@v3
+      with:
+        submodules: recursive
     
     - name: Install Vulkan SDK
       run: source ~/vulkan/setup-env.sh
