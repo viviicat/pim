@@ -55,6 +55,5 @@ jobs:
     
     - name: Configure + Build
       run: |
-        source ~/vulkan/setup-env.sh
         chmod u+x build.sh
         ./build.sh
