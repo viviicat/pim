@@ -37,7 +37,7 @@ jobs:
       run: |
         mkdir -p ~/apt-cache
         sudo cp -r /var/cache/apt/archives ~/apt-cache
-        sudo chown -r u+rw ~/apt-cache
+        sudo chown -R u+rw ~/apt-cache
 
     - name: Cache OIDN
       id: cache-oidn
