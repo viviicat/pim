@@ -1,0 +1,75 @@
+name: CMake
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+env:
+  # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
+  BUILD_TYPE: Release
+  OIDN_VERSION: "1.4.0"
+  VULKAN_VERSION: "1.3.216.0"
+
+jobs:
+  build:
+    # The CMake configure and build commands are platform agnostic and should work equally well on Windows or Mac.
+    # You can convert this to a matrix build if you need cross-platform coverage.
+    # See: https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: awalshi128/cache-apt-pkgs-action@1.0.2
+      with:
+        packages: clang libasound2-dev xorg-dev libembree-dev cmake-curses-gui libtbb-dev
+        
+    - name: Cache OIDN
+      id: cache-oidn
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/usr/include/OpenImageDenoise
+          ~/usr/lib64/libOpenImageDenoise.so*
+        key: ${{ runner.os }}-oidn-${{env.OIDN_VERSION}}
+    
+    - name: Cache Vulkan SDK
+      id: cache-vulkan
+      uses: actions/cache@v3
+      with:
+        path: vulkan
+        key: ${{ runner.os }}-vulkan-${{env.VULKAN_VERSION}}
+        
+    #- if: ${{ steps.cache-oidn.outputs.cache-hit == 'false' }}
+    - name: Install OIDN
+      run: |
+        wget https://github.com/OpenImageDenoise/oidn/releases/download/v${{env.OIDN_VERSION}}/oidn-${{env.OIDN_VERSION}}.x86_64.linux.tar.gz
+        mkdir -p ~/oidn
+        pushd oidn
+        tar -xvf --strip-components=1 oidn-${{env.OIDN_VERSION}}.x86_64.linux.tar.gz
+        sudo cp -R ./include /usr
+        sudo cp -R ./lib/* /usr/lib64/
+        popd
+      
+    #- if: ${{ steps.cache-vulkan.outputs.cache-hit == 'false' }}
+    - name: Install Vulkan
+      run: |
+        wget https://sdk.lunarg.com/sdk/download/1.3.216.0/linux/vulkansdk-linux-x86_64-${{env.VULKAN_VERSION}}.tar.gz
+        mkdir -p ~/vulkan
+        pushd vulkan
+        tar -xvf --strip-components=1 vulkansdk-linux-x86_64-${{env.VULKAN_VERSION}}.tar.gz
+        popd
+    
+    - uses: actions/checkout@v3
+    
+    - name: Install Vulkan SDK
+      run: source ~/vulkan/setup-env.sh
+
+    - name: Configure CMake
+      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
+
+    - name: Build
+      # Build your program with the given configuration
+      run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
+
+      
