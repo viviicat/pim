@@ -31,8 +31,8 @@ jobs:
           ~/usr/lib64/libOpenImageDenoise.so*
         key: ${{ runner.os }}-oidn-${{env.OIDN_VERSION}}
     
-    - if: ${{ steps.cache-oidn.outputs.cache-hit == 'false' }}
-      name: Install OIDN
+    - name: Install OIDN
+      if: steps.cache-oidn.outputs.cache-hit != 'true'
       run: |
         mkdir -p ~/oidn
         pushd ~/oidn
